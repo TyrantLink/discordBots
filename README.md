@@ -1,3 +1,3 @@
 # discordBots
-this is just a repository for my discord bots because I can.
+this is just a repository for my discord bots because I can.\n
 I use semicolons fuck you.
