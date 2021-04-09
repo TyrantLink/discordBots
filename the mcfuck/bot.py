@@ -36,7 +36,7 @@ logModes = {'r':'responded ','s':'status changed to ','n':''}
 hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
 admins = [250797109022818305]
 moderators = [250797109022818305,181824790078685184]
-bannedVariables = ['token','__file__']
+bannedVariables = ['token','__file__','qa','userqa','godqa']
 nhentai = NHentai()
 godExempt = True
 with open('qa.json','r') as qaFile: qa = json.loads(qaFile.read()); userqa = qa['userqa']; godqa = qa['godqa']
@@ -148,7 +148,7 @@ async def exemptGod(ctx,arg=not godExempt):
     await ctx.send('alright')
 @client.command(name='hentai')
 async def hentai(ctx,id=''):
-    if id != '': await ctx.send(f'https://nhentai.net/g/{id}'); return
+    if id != '': await ctx.send(f'https://nhentai.net/g/{id}')
     else: await ctx.send(f'https://nhentai.net/g/{nhentai.get_random().id}')
 @client.command(name='get')
 async def get(ctx,variable=''):
