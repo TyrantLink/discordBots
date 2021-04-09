@@ -1,4 +1,8 @@
 .env
-.log
-.dat
-.json
+output.log
+save.dat
+servers.json
+qa.json
+sent.log
+edited.log
+deleted.log
