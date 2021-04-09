@@ -31,6 +31,10 @@ admins = [250797109022818305]
 moderators = [250797109022818305,434133025450754058,344912616629469184]
 mc = MCRcon(mcRconHost,mcRconPassword,mcRconPort)
 sizes = {0:'bytes',1:'KBs',2:'MBs',3:'GBs'}
+bannedVariables = ['token','__file__','servers','']
+
+unavailableReason = ''
+
 with open('servers.json','r') as file: servers = json.loads(file.read())
 with open('save.dat','rb') as save: bannedUsers = load(save)
 def logEvent(ctx,text,mode='n'):
@@ -88,6 +92,7 @@ async def on_message(message):
 @client.command(name='start')
 async def startServer(ctx,server=''):
     global serverStarted
+    if unavailableReason != '': await ctx.send(f'sorry, starting servers is currently unavailable because: {reason}'); return
     if await permissionChecker(ctx,'banned','serverStarted','serverName','serverExists',server=server) == 'failed': return
     os.chdir(servers[server]['directory'])
     os.startfile('botStart.bat')
@@ -201,6 +206,30 @@ async def restart(ctx,server='',mode=''):
     if await permissionChecker(ctx,'banned','serverName','serverExists',server=server) == 'failed': return
     if await stopServer(ctx,mode) == 'failed': return
     await startServer(ctx,server)
+"""
+I FUCKING GIVE UP.
+@client.command(name='set')
+async def setVariable(ctx,variable,*values):
+    if await permissionChecker(ctx,'admin') == 'failed': return
+    print(type(variable))
+    try: variable = globals()[variable]
+    except: await ctx.send('unknown variable name.'); return
+    print(type(variable))
+    value = ''
+    for i in values: value += f'{i} '
+    print(value)
+    globals()[variable] = value
+    await ctx.send('done')
+    await get(ctx,variable)
+"""
+@client.command(name='get')
+async def get(ctx,variable=''):
+    if variable=='': await ctx.send('unspecified variable.'); return
+    if variable in bannedVariables: await ctx.send('no, fuck you.'); return
+    if ctx.author.id not in moderators: return
+    try: variable = globals()[variable]
+    except: await ctx.send('unknown variable name.'); return
+    await ctx.send(f'```{variable}```')
 #help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
