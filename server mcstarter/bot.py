@@ -123,6 +123,7 @@ async def stopServer(ctx,mode=''):
         if ctx.author.id in admins and mode == '-f': break
         try:
             if MinecraftServer.lookup(serverQuery).query().players.online > 0: await ctx.send('no, fuck you, there are people online.'); return 'failed'
+            else: break
         except: break
     try: mc.connect(); mc.command('stop'); mc.disconnect(); serverStarted = False; await client.change_presence(activity=discord.Game('Server Stopped')); print('rcon stop command')
     except: await ctx.send('failed to shutdown server.'); return 'failed'
