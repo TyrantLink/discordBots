@@ -30,12 +30,12 @@ outputLog = setupLogger('output log','logs/output.log')
 sentLog = setupLogger('sent log','logs/messages/sent.log')
 editedLog = setupLogger('edited log','logs/messages/edited.log')
 deletedLog = setupLogger('deleted log','logs/messages/deleted.log')
+admins = os.getenv('admins').split(',')
+moderators = os.getenv('moderators').split(',')
 client = commands.Bot(command_prefix='mcfuck!')
 client.remove_command('help')
 logModes = {'r':'responded ','s':'status changed to ','n':''}
 hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
-admins = [250797109022818305]
-moderators = [250797109022818305,181824790078685184,645069774438531089]
 bannedVariables = ['token','__file__','qa','userqa','godqa']
 nhentai = NHentai()
 godExempt = True
