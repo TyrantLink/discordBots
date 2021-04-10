@@ -5,6 +5,6 @@ I use semicolons fuck you.
 
 you'll need python 3.10a6 minimum or which ever version added match case.
 
-known issues:
+# known issues
 
 VSCode always has error "<class 'AttributeError'>: 'TreeRebuilder' object has no attribute 'visit_match'" because the debugger doesn't like using match case.
