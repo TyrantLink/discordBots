@@ -64,15 +64,15 @@ def logMessages(ctx,type,ctx2='',ext=''):
     match type:
         case 's':
             log=f'{ctx.author} sent "{ctx.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "}{ctx.channel}{ext}'
-            if msgToConsole and not ctx.author.bot and '' in ctx.content: print(f'{ctx.author} sent "{modColors}{ctx.content}{colorReset}" in {ctx.channel}{colorReset}')
+            if msgToConsole and not ctx.author.bot and '' not in ctx.content: print(f'{ctx.author} sent "{modColors}{ctx.content}{colorReset}" in {ctx.channel}{colorReset}')
             sentLog.warning(log)
         case 'd':
             log=f'"{ctx.content}" by {ctx.author} was deleted in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
-            if msgToConsole and '' in ctx.content: print(f'"{modColors}{ctx.content}{colorReset}" by {ctx.author} was deleted in {ctx.channel}{colorReset}')
+            if msgToConsole and '' not in ctx.content: print(f'"{modColors}{ctx.content}{colorReset}" by {ctx.author} was deleted in {ctx.channel}{colorReset}')
             deletedLog.warning(log)
         case 'e':
             log=f'{ctx.author} edited "{ctx.content}" into "{ctx2.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
-            if msgToConsole and '' in ctx.content: print(f'{ctx.author} edited "{modColors}{ctx.content}{colorReset}" into "{modColors}{ctx2.content}{colorReset}" in {ctx.channel}{colorReset}')
+            if msgToConsole and '' not in ctx.content: print(f'{ctx.author} edited "{modColors}{ctx.content}{colorReset}" into "{modColors}{ctx2.content}{colorReset}" in {ctx.channel}{colorReset}')
             editedLog.warning(log)
 def messageCount(ctx):
     userID = str(ctx.author.id)
