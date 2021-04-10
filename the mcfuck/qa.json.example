@@ -1,0 +1,9 @@
+"userqa":
+    {
+        "statement1":"response1",
+        "statement2":"response2",
+    },
+    "godqa":
+    {
+        "statement":"response"
+    }
