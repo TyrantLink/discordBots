@@ -31,7 +31,7 @@ admins = [250797109022818305]
 moderators = [250797109022818305,434133025450754058,344912616629469184]
 mc = MCRcon(mcRconHost,mcRconPassword,mcRconPort)
 sizes = {0:'bytes',1:'KBs',2:'MBs',3:'GBs'}
-bannedVariables = ['token','__file__','servers','']
+bannedVariables = ['token','__file__','servers']
 
 unavailableReason = ''
 
