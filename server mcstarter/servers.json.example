@@ -1,0 +1,28 @@
+{
+    "server1":
+    {
+        "name":"server1",
+        "ip":"mc.example.com",
+        "directory":"C:\\this\\is\\an\\example\\servers\\server1",
+        "version":"1.69.4",
+        "isModded":"no",
+        "mods":
+        [
+            "none (vanilla)"
+        ]
+    },
+    "server2":
+    {
+        "name":"server2",
+        "ip":"mc.example.com",
+        "directory":"C:\\this\\is\\an\\example\\servers\\server2",
+        "version":"1.4.20",
+        "isModded":"yes",
+        "mods":
+        [
+            "projecte",
+            "hax420",
+            "etc"
+        ]
+    }
+}
