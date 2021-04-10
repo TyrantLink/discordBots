@@ -17,7 +17,7 @@ msgToConsole = True
 def setupLogger(name,log_file,level=logging.WARNING):
     logger = logging.getLogger(name)
     formatter = logging.Formatter('[%(asctime)s.%(msecs)03d] %(message)s','%d/%m/%Y %H:%M:%S')
-    fileHandler = logging.FileHandler(log_file, mode='a')
+    fileHandler = logging.FileHandler(log_file, mode='a',encoding='utf-8')
     fileHandler.setFormatter(formatter)
     logger.setLevel(level)
     logger.addHandler(fileHandler)
@@ -35,7 +35,7 @@ client.remove_command('help')
 logModes = {'r':'responded ','s':'status changed to ','n':''}
 hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
 admins = [250797109022818305]
-moderators = [250797109022818305,181824790078685184]
+moderators = [250797109022818305,181824790078685184,645069774438531089]
 bannedVariables = ['token','__file__','qa','userqa','godqa']
 nhentai = NHentai()
 godExempt = True
@@ -59,23 +59,21 @@ def logEvent(ctx,text,mode='n'):
     outputLog.warning(log)
     print(log)
 def logMessages(ctx,type,ctx2='',ext=''):
-    loveColors = '\033[92m' if ctx.author.id == 645069774438531089 else '\033[0m'
+    modColors = '\033[92m' if ctx.author.id in moderators else '\033[0m'
     colorReset = '\033[0m'
     match type:
-        case 's':log=f'{ctx.author} sent "{ctx.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "}{ctx.channel}{ext}'
-        case 'd':log=f'"{ctx.content}" by {ctx.author} was deleted in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
-        case 'e':log=f'{ctx.author} edited "{ctx.content}" into "{ctx2.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
-    if msgToConsole:
-        match type:
-            case 's':
-                if not ctx.author.bot: print(f'{ctx.author} sent "{loveColors}{ctx.content}{colorReset}" in {ctx.channel}{colorReset}')
-            case 'd':print(f'"{loveColors}{ctx.content}{colorReset}" by {ctx.author} was deleted in {ctx.channel}{colorReset}')
-            case 'e':print(f'{ctx.author} edited "{loveColors}{ctx.content}{colorReset}" into "{loveColors}{ctx2.content}{colorReset}" in {ctx.channel}{colorReset}')
-    emojiLog = log.encode('ascii','ignore').decode('ascii')
-    match type:
-        case 's': sentLog.warning(log) if emojiLog == log else sentLog.warning(f'{emojiLog} - not all of message logged - most likey contained emoji')
-        case 'e': editedLog.warning(log) if emojiLog == log else editedLog.warning(f'{emojiLog} - not all of message logged - most likey contained emoji')
-        case 'd': deletedLog.warning(log) if emojiLog == log else deletedLog.warning(f'{emojiLog} - not all of message logged - most likey contained emoji')
+        case 's':
+            log=f'{ctx.author} sent "{ctx.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "}{ctx.channel}{ext}'
+            if msgToConsole and not ctx.author.bot: print(f'{ctx.author} sent "{modColors}{ctx.content}{colorReset}" in {ctx.channel}{colorReset}')
+            sentLog.warning(log)
+        case 'd':
+            log=f'"{ctx.content}" by {ctx.author} was deleted in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
+            if msgToConsole: print(f'"{modColors}{ctx.content}{colorReset}" by {ctx.author} was deleted in {ctx.channel}{colorReset}')
+            deletedLog.warning(log)
+        case 'e':
+            log=f'{ctx.author} edited "{ctx.content}" into "{ctx2.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
+            if msgToConsole: print(f'{ctx.author} edited "{modColors}{ctx.content}{colorReset}" into "{modColors}{ctx2.content}{colorReset}" in {ctx.channel}{colorReset}')
+            editedLog.warning(log)
 def messageCount(ctx):
     userID = str(ctx.author.id)
     messages.update({userID:(messages[userID])+1}) if userID in messages else messages.update({userID:1})
