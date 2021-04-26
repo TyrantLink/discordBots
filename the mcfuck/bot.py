@@ -39,6 +39,7 @@ client.remove_command('help')
 logModes = {'r':'responded ','s':'status changed to ','n':''}
 hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
 bannedVariables = ['token','__file__','qa','userqa','godqa']
+powersofTwo = [16,32,64,128,256,512,1024,2048,4096]
 nhentai = NHentai()
 godExempt = True
 maxRoll = 16384
@@ -90,7 +91,7 @@ async def autoResponse(ctx):
     global godExempt
     response = ''
     if ctx.author.bot: return
-    if ctx.author.id == 255797109022818305:
+    if ctx.author.id == 250797109022818305:
         if ctx.content in godqa: await ctx.channel.send(godqa[ctx.content]); logEvent(ctx,godqa[ctx.content],'r')
         if ctx.content in userqa and godExempt == False: await ctx.channel.send(userqa[ctx.content]); logEvent(ctx,userqa[ctx.content],'r')
     else:
@@ -130,6 +131,7 @@ async def leaderboard(ctx,arg=None):
             username = ''
             index = 1
             for i in messages:
+                oldResponse = response
                 if i in idNameCache: username = idNameCache[i]
                 else:
                     logEvent(ctx,f'adding {i} to ID cache')
@@ -138,6 +140,7 @@ async def leaderboard(ctx,arg=None):
                     username = idNameCache[i]
                 rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
                 response += f'{rank} - {username}: {messages[i]}\n'
+                if len(response)+20 > 2048: response = oldResponse; break
             await ctx.send(embed=discord.Embed(title='Message Leaderboard:',description=response,color=0x69ff69))
             logEvent(ctx,'with message leaderboard','r')
             saveAll()
@@ -169,7 +172,7 @@ async def get(ctx,variable=''):
     if ctx.author.id not in moderators: return
     try: variable = globals()[variable]
     except: await ctx.send('unknown variable name.'); return
-    await ctx.send(f'```{variable}```')
+    await ctx.send(f'```{type(variable)}\n{variable}```')
 @client.command(name='messageBackup')
 async def messageBackupcmd(ctx):
     messageBackup()
@@ -194,26 +197,52 @@ async def roll(ctx,roll):
 async def getName(ctx,id):
     if len(id) != 18: await ctx.send('id error'); return
     try: user = await client.fetch_user(id)
-    except: ctx.send('id error'); return
+    except: await ctx.send('id error'); return
     await ctx.send(user.name)
 @client.command(name='getid')
 async def getid(ctx,name):
     await ctx.send(int(re.sub('[<@!>]','',name)))
+@client.command(name='getAvatar')
+async def getAvatar(ctx,*idsI,res=512):
+    users = ''
+    ids = []
+    for i in idsI:
+        if i.startswith('-'): res = int(re.sub('-','',i)); continue
+        i = re.sub('[<@!>]','',i)
+        ids.append(re.sub('[<@!>]','',i))
+        if len(re.sub('[<@!>]','',i)) != 18: await ctx.send('id or argument error'); return
+    if res not in powersofTwo: await ctx.send('size must be a power of 2 between 16 and 4096'); return
+    for i in ids:
+        try: user = await client.fetch_user(i)
+        except: await ctx.send('id error'); return
+        users += f'{user.avatar_url_as(format="png",size=res)}\n'
+    await ctx.send(users[:-1])
 #help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
     embed = discord.Embed(title='Help',description='mcfuck!help <command> for more info',color=0x69ff69)
-    embed.add_field(name='user commands',value='hentai\nmessageLeaderboard')
-    embed.add_field(name='admin commands',value='clearIDcache\nget\ngodExempt')
+    embed.add_field(name='user commands',value='getAvatar\ngetid\ngetName\nhentai\nleaderboard\nroll')
+    embed.add_field(name='admin commands',value='clearIDcache\nget\ngodExempt\nmessageBackup')
     await ctx.send(embed=embed)
+@help.command(name='getAvatar')
+async def help_getAvatar(ctx): await ctx.send(embed=discord.Embed(title='getAvatar',description='get the avatar of a user. default resolution is 512.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getAvatar <id or @ping> -[res]',inline=False).add_field(name='Example',value='mcfuck!getAvatar 821021462604677140 @the mcfuck. -256',inline=False))
+@help.command(name='getid')
+async def help_getid(ctx): await ctx.send(embed=discord.Embed(title='getid',description='get userid from @ping.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getid <@ping>',inline=False).add_field(name='Example',value='mcfuck!getid @the mcfuck.',inline=False))
+@help.command(name='getName')
+async def help_getName(ctx): await ctx.send(embed=discord.Embed(title='getName',description='get username from id.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getName <id>',inline=False).add_field(name='Example',value='mcfuck!getName 821021462604677140',inline=False))
 @help.command(name='hentai')
-async def help_hentai(ctx): await ctx.send(embed=discord.Embed(title='hentai',description='give random hentai or give sauce from id.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!hentai [id]'))
-@help.command(name='messageLeaderboard')
-async def help_messageLeaderboard(ctx): await ctx.send(embed=discord.Embed(title='messageLeaderboard',description='lists leaderboard for total messages sent by users.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!messageLeaderboard'))
+async def help_hentai(ctx): await ctx.send(embed=discord.Embed(title='hentai',description='give random hentai or give sauce from id.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!hentai [id]').add_field(name='Example',value='mcfuck!hentai 177013',inline=False))
+@help.command(name='leaderboard')
+async def help_leaderboard(ctx): await ctx.send(embed=discord.Embed(title='leaderboard',description='lists leaderboards.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!leaderboard -<leaderboard>').add_field(name='Leaderboards',value='-m, message leaderboard',inline=False).add_field(name='Example',value='mcfuck!leaderboard -m',inline=False))
+@help.command(name='roll')
+async def help_roll(ctx): await ctx.send(embed=discord.Embed(title='roll',description='simple dice roller',color=0x69ff69).add_field(name='Syntax',value='mcfuck!roll <count>d<sides>+[modifiers]',inline=False).add_field(name='Example',value='mcfuck!roll 2d6+3+1',inline=False))
 @help.command(name='clearIDcache')
 async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!clearIDcache'))
 @help.command(name='get')
 async def help_get(ctx): await ctx.send(embed= discord.Embed(title='get',description='prints out given variable.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!get <variable>'))
 @help.command(name='godExempt')
 async def help_godExempt(ctx): await ctx.send(embed= discord.Embed(title='godExempt',description='toggles or sets if bot will auto respond to god messages.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!godExempt [bool]'))
+@help.command(name='messageBackup')
+async def help_messageBackup(ctx): await ctx.send(embed=discord.Embed(title='messageBackup',description='forces backup of messages.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!messageBackup'))
+
 client.run(token)
