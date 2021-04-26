@@ -1,9 +1,11 @@
 import os
+import re
 import json
 import shutil
 import logging
 import discord
 from time import time
+from random import randint
 from NHentai import NHentai
 from pickle import load,dump
 from datetime import datetime
@@ -25,9 +27,9 @@ def setupLogger(name,log_file,level=logging.WARNING):
 #startup
 os.chdir(r'S:\ProgrammingProjects\&DiscordBots\the mcfuck')
 load_dotenv()
-token=os.getenv('token') 
-admins = os.getenv('admins').split(',')
-moderators = os.getenv('moderators').split(',')
+token=os.getenv('token')
+admins = [int(i) for i in os.getenv('admins').split(',')]
+moderators = [int(i) for i in os.getenv('moderators').split(',')]
 outputLog = setupLogger('output log','logs/output.log')
 sentLog = setupLogger('sent log','logs/messages/sent.log')
 editedLog = setupLogger('edited log','logs/messages/edited.log')
@@ -39,6 +41,8 @@ hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
 bannedVariables = ['token','__file__','qa','userqa','godqa']
 nhentai = NHentai()
 godExempt = True
+maxRoll = 16384
+
 with open('qa.json','r') as qaFile: qa = json.loads(qaFile.read()); userqa = qa['userqa']; godqa = qa['godqa']
 with open('save.dat','rb') as save:
     messages = load(save)
@@ -59,6 +63,7 @@ def logEvent(ctx,text,mode='n'):
     outputLog.warning(log)
     print(log)
 def logMessages(ctx,type,ctx2='',ext=''):
+    if ctx.author.id == 234395307759108106: return
     modColors = '\033[92m' if ctx.author.id in moderators else '\033[0m'
     colorReset = '\033[0m'
     match type:
@@ -71,6 +76,7 @@ def logMessages(ctx,type,ctx2='',ext=''):
             if msgToConsole and '' not in ctx.content: print(f'"{modColors}{ctx.content}{colorReset}" by {ctx.author} was deleted in {ctx.channel}{colorReset}')
             deletedLog.warning(log)
         case 'e':
+            if ctx.content == ctx2.content: return
             log=f'{ctx.author} edited "{ctx.content}" into "{ctx2.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "} - {ctx.channel}{ext}'
             if msgToConsole and '' not in ctx.content: print(f'{ctx.author} edited "{modColors}{ctx.content}{colorReset}" into "{modColors}{ctx2.content}{colorReset}" in {ctx.channel}{colorReset}')
             editedLog.warning(log)
@@ -82,13 +88,17 @@ def messageBackup():
     shutil.copytree(f'{os.getcwd()}\\logs', f'{os.getcwd()}\\backups\\logs\\{datetime.fromtimestamp(time()).strftime("%d.%m.%Y %H.%M.%S")}')
 async def autoResponse(ctx):
     global godExempt
+    response = ''
     if ctx.author.bot: return
-    if ctx.author.id == 250797109022818305:
+    if ctx.author.id == 255797109022818305:
         if ctx.content in godqa: await ctx.channel.send(godqa[ctx.content]); logEvent(ctx,godqa[ctx.content],'r')
         if ctx.content in userqa and godExempt == False: await ctx.channel.send(userqa[ctx.content]); logEvent(ctx,userqa[ctx.content],'r')
     else:
         if ctx.content in userqa:
-            await ctx.channel.send(userqa[ctx.content]); logEvent(ctx,userqa[ctx.content],'r')
+            for i in userqa[ctx.content]:
+                if randint(0,1): response += f'​{i}'
+                else: response += i
+            await ctx.channel.send(response); logEvent(ctx,response,'r')
             for i in range(len(userqa)):
                 if ctx.content == i:
                     if foundstuffs[i] == 0: foundstuffs[i] = 1; await ctx.channel.send('NEW AUTO RESPONSE FOUND'); saveAll()
@@ -100,9 +110,9 @@ async def on_ready():
 async def on_message(message):
     logMessages(message,'s',' - image or embed') if message.content == "" else logMessages(message,'s')
     if message.author.id == 713586207119900693: messageBackup()
+    messageCount(message)
     if message.author.bot: return
     await autoResponse(message)
-    messageCount(message)
     await client.process_commands(message)
 @client.event
 async def on_message_delete(message):
@@ -110,25 +120,29 @@ async def on_message_delete(message):
 @client.event
 async def on_message_edit(message_before,message_after):
     logMessages(message_before,'e',message_after,' - image or embed') if message_after.content == "" else logMessages(message_before,'e',message_after)
-@client.command(name='messageLeaderboard')
-async def messageLeaderboard(ctx):
+@client.command(name='leaderboard')
+async def leaderboard(ctx,arg=None):
     global idNameCache,messages
-    messages = {key: value for key, value in sorted(messages.items(), key=lambda item: item[1],reverse=True)}
-    response = ''
-    username = ''
-    index = 1
-    for i in messages:
-        if i in idNameCache: username = idNameCache[i]
-        else:
-            logEvent(ctx,f'adding {i} to ID cache')
-            user = await client.fetch_user(i)
-            idNameCache.update({i:user.name})
-            username = idNameCache[i]
-        rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
-        response += f'{rank} - {username}: {messages[i]}\n'
-    await ctx.send(embed=discord.Embed(title='Message Leaderboard:',description=response,color=ctx.author.color))
-    logEvent(ctx,'with message leaderboard','r')
-    saveAll()
+    match arg:
+        case '-m':
+            messages = {key: value for key, value in sorted(messages.items(), key=lambda item: item[1],reverse=True)}
+            response = ''
+            username = ''
+            index = 1
+            for i in messages:
+                if i in idNameCache: username = idNameCache[i]
+                else:
+                    logEvent(ctx,f'adding {i} to ID cache')
+                    user = await client.fetch_user(i)
+                    idNameCache.update({i:user.name})
+                    username = idNameCache[i]
+                rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
+                response += f'{rank} - {username}: {messages[i]}\n'
+            await ctx.send(embed=discord.Embed(title='Message Leaderboard:',description=response,color=0x69ff69))
+            logEvent(ctx,'with message leaderboard','r')
+            saveAll()
+        case _:
+            await ctx.send('unknown leaderboard.')
 @client.command(name='clearIDcache')
 async def clearIDcache(ctx):
     global idNameCache
@@ -160,21 +174,46 @@ async def get(ctx,variable=''):
 async def messageBackupcmd(ctx):
     messageBackup()
     await ctx.send('done')
+@client.command(name='roll')
+async def roll(ctx,roll):
+    modifiers = 0
+    for i in roll.split('+'):
+        if 'd' in i: roll = i
+        else: modifiers += int(i)
+    try: roll = roll.split('d'); roll[0] = int(roll[0]); roll[1] = int(roll[1])
+    except: await ctx.send('argument error.'); raise; return
+    for i in roll:
+        if i > maxRoll:
+            await ctx.send(f'rolls cannot be above {(format(maxRoll,",d"))}'); return
+    response = ''; total = 0
+    for i in range(roll[0]): rand = randint(1,roll[1]); response += f'{rand},'; total += rand
+    total += modifiers; total = (format(total,',d'))
+    try: await ctx.send(embed=discord.Embed(title='rolls:',description=f'[{response[:-1]}]',color=0x69ff69).add_field(name='Modifiers:',value=modifiers).add_field(name='Total:',value=total))
+    except: await ctx.send(embed=discord.Embed(title='rolls:',description='total rolls above character limit.',color=0x69ff69).add_field(name='Modifiers:',value=modifiers).add_field(name='Total:',value=total))
+@client.command(name='getName')
+async def getName(ctx,id):
+    if len(id) != 18: await ctx.send('id error'); return
+    try: user = await client.fetch_user(id)
+    except: ctx.send('id error'); return
+    await ctx.send(user.name)
+@client.command(name='getid')
+async def getid(ctx,name):
+    await ctx.send(int(re.sub('[<@!>]','',name)))
 #help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
-    embed = discord.Embed(title='Help',description='mcfuck!help <command> for more info',color=ctx.author.color)
+    embed = discord.Embed(title='Help',description='mcfuck!help <command> for more info',color=0x69ff69)
     embed.add_field(name='user commands',value='hentai\nmessageLeaderboard')
     embed.add_field(name='admin commands',value='clearIDcache\nget\ngodExempt')
     await ctx.send(embed=embed)
 @help.command(name='hentai')
-async def help_hentai(ctx): await ctx.send(embed=discord.Embed(title='hentai',description='give random hentai or give sauce from id.',color=ctx.author.color).add_field(name='Syntax',value='mcfuck!hentai [id]'))
+async def help_hentai(ctx): await ctx.send(embed=discord.Embed(title='hentai',description='give random hentai or give sauce from id.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!hentai [id]'))
 @help.command(name='messageLeaderboard')
-async def help_messageLeaderboard(ctx): await ctx.send(embed=discord.Embed(title='messageLeaderboard',description='lists leaderboard for total messages sent by users.',color=ctx.author.color).add_field(name='Syntax',value='mcfuck!messageLeaderboard'))
+async def help_messageLeaderboard(ctx): await ctx.send(embed=discord.Embed(title='messageLeaderboard',description='lists leaderboard for total messages sent by users.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!messageLeaderboard'))
 @help.command(name='clearIDcache')
-async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=ctx.author.color).add_field(name='Syntax',value='mcfuck!clearIDcache'))
+async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!clearIDcache'))
 @help.command(name='get')
-async def help_get(ctx): await ctx.send(embed= discord.Embed(title='get',description='prints out given variable.',color=ctx.author.color).add_field(name='Syntax',value='mcfuck!get <variable>'))
+async def help_get(ctx): await ctx.send(embed= discord.Embed(title='get',description='prints out given variable.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!get <variable>'))
 @help.command(name='godExempt')
-async def help_godExempt(ctx): await ctx.send(embed= discord.Embed(title='godExempt',description='toggles or sets if bot will auto respond to god messages.',color=ctx.author.color).add_field(name='Syntax',value='mcfuck!godExempt [bool]'))
+async def help_godExempt(ctx): await ctx.send(embed= discord.Embed(title='godExempt',description='toggles or sets if bot will auto respond to god messages.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!godExempt [bool]'))
 client.run(token)
