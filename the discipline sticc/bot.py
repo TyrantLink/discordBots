@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import discord
 from random import randint
@@ -6,37 +7,56 @@ from pickle import load,dump
 from datetime import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
+from time import sleep
 
-saveFile = 'save.dat'
 client = commands.Bot(command_prefix='sticc!')
 client.remove_command('help')
-tsRole = discord.Object('769298891068669974')
 serverId = 559830737889787924
 os.chdir(r"S:\ProgrammingProjects\&DiscordBots\the discipline sticc")
 logging.basicConfig(format='[%(asctime)s.%(msecs)03d] %(message)s',filename='output.log',level=logging.WARNING,datefmt='%d/%m/%Y %H:%M:%S')
 load_dotenv()
 token=os.getenv('token')
 logModes = {'r':'responded ','s':'status changed to ','n':''}
-bannedUsers = ['343972120067309568']
-admins = ['344912616629469184','434133025450754058','250797109022818305']
-daysConv = {'monday':0,'tuesday':1,'wednesday':2,'thursday':3,'friday':4,'saturday':5,'sunday':6}
-daysConvR= {0:'monday',1:'tuesday',2:'wednesday',3:'thursday',4:'friday',5:'saturday',6:'sunday'}
-
-with open(saveFile,'rb') as save:
-    activeMemberNames = load(save)
-    activeMemberIDs = load(save)
-    currentStik = load(save)
-    updateDays = load(save)
-    sticcs = load(save)
-    idNameCache = load(save)
-def saveAll():
-    with open(saveFile,'wb') as save:
-        dump(activeMemberNames,save)
-        dump(activeMemberIDs,save)
-        dump(currentStik,save)
-        dump(updateDays,save)
-        dump(sticcs,save)
-        dump(idNameCache,save)
+bannedUsers = [343972120067309568]
+admins = [344912616629469184,434133025450754058,250797109022818305]
+bannedVariables = ['token','__file__']
+days = {'🇲':0,'🇹':1,'🇼':2,'🅰':3,'🇫':4,'🇸':5,'🅱':6}
+try:
+    with open('save.dat','rb') as save:
+        activeMemberIDs = load(save)
+        currentStik = load(save)
+        sticcs = load(save)
+        idNameCache = load(save)
+except:
+    activeMemberIDs = []
+    currentStik = 0
+    sticcs = {}
+    idNameCache = {}
+try:
+    with open('staticSave.dat','rb') as save:
+        setupComplete = load(save)
+        tsRole = load(save)
+        tsChannel = load(save)
+        updateDays = load(save)
+except:
+    setupComplete = False
+    tsRole = ''
+    tsChannel = ''
+    updateDays = ''
+def save(type):
+    match type:
+        case 'v':
+            with open('save.dat','wb') as save:
+                dump(activeMemberIDs,save)
+                dump(currentStik,save)
+                dump(sticcs,save)
+                dump(idNameCache,save)
+        case 's':
+            with open('staticSave.dat','wb') as save:
+                dump(setupComplete,save)
+                dump(tsRole,save)
+                dump(tsChannel,save)
+                dump(updateDays,save)
 def logEvent(ctx,text,custom=False,mode='n'):
     try: m=logModes[mode]
     except: m='unknown log mode'
@@ -44,11 +64,11 @@ def logEvent(ctx,text,custom=False,mode='n'):
     logging.warning(log)
     print(log)
 async def activeMembers(ctx):
-    activeMemberNames.append(str(ctx.author))
-    activeMemberIDs.append(str(ctx.author.id))
-    saveAll()
+    activeMemberIDs.append(ctx.author.id)
+    save('v')
 async def updateStatus():
-    user = str(await client.fetch_user(currentStik))[:-5]
+    user = await client.fetch_user(currentStik)
+    user = user.name
     await client.change_presence(activity=discord.Game(f'{user} has the talking stick'))
 async def rollTalkingStick(ctx):
     global activeMemberIDs,activeMemberNames,currentStik,sticcs
@@ -61,64 +81,99 @@ async def rollTalkingStick(ctx):
     await client.get_channel(742239160399822868).send(f'congrats <@!{rand}>, you have the talking stick.')
     currentStik = rand
     sticcs.update({ctx.author.id:(sticcs[ctx.author.id])+1}) if ctx.author.id in sticcs else sticcs.update({ctx.author.id:1})
-    activeMemberNames = []
     activeMemberIDs = []
-    saveAll()
-    logEvent(ctx,f'rerolled talking stick to {rand}')
+    save('v')
+    logEvent(ctx,f'rerolled talking stick to {newStik}')
 @client.event
 async def on_ready():
-    log=f"the discipline sticc connected to Discord!"
+    log=f"{client.user.name} connected to Discord!"
     logging.warning(log)
     print(f'{log}\n')
     await updateStatus()
 @client.event
 async def on_message(message):
-    try:
-        if message.guild.id != serverId: return
-    except:
-        if message.channel.id == 820344365985038357: pass
-        else: return
-    if str(message.author.id) not in activeMemberIDs and str(message.author.id) not in bannedUsers: logEvent(message,f'adding {message.author.name} to active members',True); await activeMembers(message)
+    if message.author.id not in activeMemberIDs and message.author.id not in bannedUsers: logEvent(message,f'adding {message.author.name} to active members',True); await activeMembers(message)
     if message.author.id == 713586207119900693 and datetime.today().weekday() in updateDays: await rollTalkingStick(message); await updateStatus()
     await client.process_commands(message)
-@client.command(name='setDays')
-async def setDays(ctx,*,arg):
-    global updateDays
-    if str(ctx.author.id) not in admins: print('failed to update reroll days - not admin'); await ctx.send(f'you have insufficient permissions.'); return
-    updateDays.clear()
-    if arg == 'everyday': updateDays = [0,1,2,3,4,5,6]; await ctx.send('done'); return
-    if arg == 'none': updateDays = []; await ctx.send('done'); return
-    days = arg.split(', ')
-    for i in days: updateDays.append(daysConv[i])
-    await ctx.send(f'done')
-@client.command(name='rerollDays')
-async def currentDays(ctx):
-    currentDays = ''
-    for i in updateDays: currentDays += f'{daysConvR[int(i)]} '
-    await ctx.send(f'the current reroll days are {currentDays}')
-@client.command(name='fReroll')
-async def forceReroll(ctx):
-    if str(ctx.author.id) in admins: await rollTalkingStick(ctx); await updateStatus(); logEvent(ctx,'force rerolling talking stick')
+@client.command(name='setup')
+async def setup(ctx):
+    global tsRole,tsChannel,updateDays
+    await ctx.send(embed=discord.Embed(title='Talking Stick Role:',description='simply ping the role',color=0x69ff69))
+    activeUser = ctx.author.id
+    while True:
+        msg = await client.wait_for('message')
+        if activeUser != msg.author.id: continue
+        if re.match('<@&[0-9]{18}>',msg.content): tsRole = discord.Object(str(re.sub('[<@&>]','',msg.content))); break
+        elif msg.content == 'break': await ctx.send('okay'); return
+        else: await ctx.send('invalid response, just ping the role.')
+    await ctx.send(embed=discord.Embed(title='Talking Stick Channel:',description='simply ping the channel',color=0x69ff69))
+    while True:
+        msg = await client.wait_for('message')
+        if activeUser != msg.author.id: continue
+        if re.match('<#[0-9]{18}>',msg.content): tsChannel = discord.Object(str(re.sub('[<#>]','',msg.content))); break
+        elif msg.content == 'break': await ctx.send('okay'); return
+        else: await ctx.send('invalid response, just ping the channel.')
+    updateDays = []
+    msg = await ctx.send(embed=discord.Embed(title='Days to reroll:',description='🇲: Monday\n🇹: Tuesday\n🇼: Wednesday\n🅰: Thursday\n🇫: Friday\n🇸: Saturday\n🅱️: Sunday\n✅: done',color=0x69ff69))
+    for i in days: await msg.add_reaction(i)
+    await msg.add_reaction('✅')
+    sleep(.5)
+    def check(reaction,user):
+        if activeUser != user.id: return False
+        match reaction.emoji:
+            case '🇲':
+                if '🇲' not in updateDays: updateDays.append(days['🇲']); return False
+            case '🇹':
+                if '🇹' not in updateDays: updateDays.append(days['🇹']); return False
+            case '🇼':
+                if '🇼' not in updateDays: updateDays.append(days['🇼']); return False
+            case '🅰':
+                if '🅰' not in updateDays: updateDays.append(days['🅰']); return False
+            case '🇫':
+                if '🇫' not in updateDays: updateDays.append(days['🇫']); return False
+            case '🇸':
+                if '🇸' not in updateDays: updateDays.append(days['🇸']); return False
+            case '🅱':
+                if '🅱' not in updateDays: updateDays.append(days['🅱']); return False
+            case "✅": return True
+            case _: return False
+    await client.wait_for('reaction_add',check=check)
+    await ctx.send(embed=discord.Embed(title='Setup Complete.',description=f'role: <@&{tsRole.id}>\n\nchannel: <#{tsChannel.id}>\n\nupdateDays: {updateDays}',color=0x69ff69))
+    save('s')
+@client.command(name='info')
+async def setupInfo(ctx):
+    await ctx.send(embed=discord.Embed(title='Bot Info:',description=f'role: <@&{tsRole.id}>\n\nchannel: <#{tsChannel.id}>\n\nupdateDays: {updateDays}',color=0x69ff69))
+@client.command(name='reroll')
+async def forceReroll(ctx,arg):
+    if arg != '-f': return
+    if ctx.author.id in admins: await rollTalkingStick(ctx); await updateStatus(); logEvent(ctx,'force rerolling talking stick')
     else: logEvent(ctx,'failed talking stick reroll: user not an admin')
 @client.command(name='listActive')
 async def listActive(ctx):
     active = ''
-    for i in activeMemberNames: active += f'{i}\n'
-    await ctx.send(embed=discord.Embed(title='Active Users',description=active,color=ctx.author.color))
+    for i in activeMemberIDs:
+        if i in idNameCache: username = idNameCache[i]
+        else:
+            logEvent(ctx,f'adding {i} to ID cache')
+            user = await client.fetch_user(i)
+            idNameCache.update({i:user.name})
+            username = idNameCache[i]
+        active += f'{username}\n'
+    await ctx.send(embed=discord.Embed(title='Active Users',description=active,color=0x69ff69))
 @client.command(name='removeActive')
 async def removeActive(ctx,id):
-    if str(ctx.author.id) not in admins: return
+    if ctx.author.id not in admins: return
+    if id == '*': activeMemberIDs = []; await ctx.send('done'); return
     if len(id) != 18: await ctx.send('id error'); return
     for i in range(len(activeMemberIDs)):
-        if id == activeMemberIDs[i]: activeMemberIDs.pop(i); activeMemberNames.pop(i); await ctx.send('done'); return
+        if id == activeMemberIDs[i]: activeMemberIDs.pop(i); await ctx.send('done'); return
     else: await ctx.send('user was not in active list')
 @client.command(name='addActive')
 async def addActive(ctx,id):
-    if str(ctx.author.id) not in admins: return
+    if ctx.author.id not in admins: return
     if len(id) != 18: await ctx.send('id error'); return
-    if id in activeMemberIDs: await ctx.send('user is already active'); return
+    if int(id) in activeMemberIDs: await ctx.send('user is already active'); return
     activeMemberIDs.append(id)
-    activeMemberNames.append(await ctx.guild.fetch_member(id))
     await ctx.send('done')
 @client.command(name='leaderboard')
 async def leaderboard(ctx):
@@ -135,9 +190,9 @@ async def leaderboard(ctx):
             username = idNameCache[i]
         rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
         response += f'{rank} - {username}: {sticcs[i]}\n'
-    await ctx.send(embed=discord.Embed(title='sticc Leaderboard:',description=response,color=ctx.author.color))
+    await ctx.send(embed=discord.Embed(title='sticc Leaderboard:',description=response,color=0x69ff69))
     logEvent(ctx,'with sticc leaderboard',False,'r')
-    saveAll()
+    save('v')
 @client.command(name='clearIDcache')
 async def clearIDcache(ctx):
     global idNameCache
@@ -145,27 +200,49 @@ async def clearIDcache(ctx):
     idNameCache = {}
     logEvent(ctx,'cleared user ID cache')
     await ctx.send('done')
+@client.command(name='get')
+async def get(ctx,variable=''):
+    if variable=='': await ctx.send('unspecified variable.'); return
+    if variable in bannedVariables: await ctx.send('no, fuck you.'); return
+    if ctx.author.id not in admins: return
+    try: variable = globals()[variable]
+    except: await ctx.send('unknown variable name.'); return
+    await ctx.send(f'```{variable}```')
+@client.command(name='role')
+async def role(ctx,action='',id=''):
+    if action == '' or id == '': await ctx.send('argument error.'); return
+    if ctx.author.id not in admins: return
+    if len(id) != 18: await ctx.send('id error'); return
+    match action:
+        case 'remove': 
+            user = await ctx.guild.fetch_member(id)
+            await user.remove_roles(tsRole)
+            await ctx.send('done.')
+        case 'give':
+            user = await ctx.guild.fetch_member(id)
+            await user.add_roles(tsRole)
+            await ctx.send('done.')
 #help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
-    embed = discord.Embed(title='Help',description='sticc!help <command> for more info',color=ctx.author.color)
+    embed = discord.Embed(title='Help',description='sticc!help <command> for more info',color=0x69ff69)
     embed.add_field(name='user commands',value='listActive\nrerollDays\nsticcLeaderboard')
     embed.add_field(name='admin commands',value='addActive\nclearIDcache\nfReroll\nremoveActive\nsetDays')
     await ctx.send(embed=embed)
 @help.command(name='listActive')
-async def help_listActive(ctx): await ctx.send(embed=discord.Embed(title='listActive',description='lists all users who are active enough to be rolled the talking sticc.',color=ctx.author.color).add_field(name='Syntax',value='sticc!listActive'))
+async def help_listActive(ctx): await ctx.send(embed=discord.Embed(title='listActive',description='lists all users who are active enough to be rolled the talking sticc.',color=0x69ff69).add_field(name='Syntax',value='sticc!listActive'))
 @help.command(name='rerollDays')
-async def help_rerollDays(ctx): await ctx.send(embed=discord.Embed(title='rerollDays',description='lists the days when the talking sticc will be rerolled.',color=ctx.author.color).add_field(name='Syntax',value='sticc!rerollDays'))
+async def help_rerollDays(ctx): await ctx.send(embed=discord.Embed(title='rerollDays',description='lists the days when the talking sticc will be rerolled.',color=0x69ff69).add_field(name='Syntax',value='sticc!rerollDays'))
 @help.command(name='addActive')
-async def help_addActive(ctx): await ctx.send(embed=discord.Embed(title='addActive',description='manually adds a user to the list of active users.',color=ctx.author.color).add_field(name='Syntax',value='sticc!addActive <userID>'))
+async def help_addActive(ctx): await ctx.send(embed=discord.Embed(title='addActive',description='manually adds a user to the list of active users.',color=0x69ff69).add_field(name='Syntax',value='sticc!addActive <userID>'))
 @help.command(name='fReroll')
-async def help_fReroll(ctx): await ctx.send(embed=discord.Embed(title='fReroll',description='force rerolls the talking sticc, ignoring time and date.',color=ctx.author.color).add_field(name='Syntax',value='sticc!fReroll'))
+async def help_fReroll(ctx): await ctx.send(embed=discord.Embed(title='fReroll',description='force rerolls the talking sticc, ignoring time and date.',color=0x69ff69).add_field(name='Syntax',value='sticc!fReroll'))
 @help.command(name='removeActive')
-async def help_removeActive(ctx): await ctx.send(embed=discord.Embed(title='removeActive',description='manually removes a user from the list of active users.',color=ctx.author.color).add_field(name='Syntax',value='sticc!removeActive <userID>'))
+async def help_removeActive(ctx): await ctx.send(embed=discord.Embed(title='removeActive',description='manually removes a user from the list of active users.',color=0x69ff69).add_field(name='Syntax',value='sticc!removeActive <userID>'))
 @help.command(name='setDays')
-async def help_setDays(ctx): await ctx.send(embed=discord.Embed(title='setDays',description='sets which days the talking sticc will reroll.',color=ctx.author.color).add_field(name='Syntax',value='sticc!setDays <everyday/none/day1, day2, day3 etc.>'))
+async def help_setDays(ctx): await ctx.send(embed=discord.Embed(title='setDays',description='sets which days the talking sticc will reroll.',color=0x69ff69).add_field(name='Syntax',value='sticc!setDays <everyday/none/day1, day2, day3 etc.>'))
 @help.command(name='leaderboard')
-async def help_leaderboard(ctx): await ctx.send(embed=discord.Embed(title='leaderboard',description='lists leaderboard for total number of times a user has recieved the talking sticc.',color=ctx.author.color).add_field(name='Syntax',value='sticc!leaderboard'))
+async def help_leaderboard(ctx): await ctx.send(embed=discord.Embed(title='leaderboard',description='lists leaderboard for total number of times a user has recieved the talking sticc.',color=0x69ff69).add_field(name='Syntax',value='sticc!leaderboard'))
 @help.command(name='clearIDcache')
-async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=ctx.author.color).add_field(name='Syntax',value='sticc!clearIDcache'))
+async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=0x69ff69).add_field(name='Syntax',value='sticc!clearIDcache'))
 client.run(token)
