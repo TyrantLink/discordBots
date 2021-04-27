@@ -1,14 +1,7 @@
-import os
-import re
-import sys
-import json
-import shutil
-import logging
-import discord
-import contextlib
+import os,re,json,logging,discord,requests
 from time import time,sleep
-from io import StringIO
 from random import randint
+from shutil import copytree
 from NHentai import NHentai
 from pickle import load,dump
 from datetime import datetime
@@ -33,6 +26,7 @@ load_dotenv()
 token=os.getenv('token')
 admins = [int(i) for i in os.getenv('admins').split(',')]
 moderators = [int(i) for i in os.getenv('moderators').split(',')]
+hypixelKey = os.getenv('hypixelKey')
 outputLog = setupLogger('output log','logs/output.log')
 sentLog = setupLogger('sent log','logs/messages/sent.log')
 editedLog = setupLogger('edited log','logs/messages/edited.log')
@@ -41,7 +35,7 @@ client = commands.Bot(command_prefix='mcfuck!')
 client.remove_command('help')
 logModes = {'r':'responded ','s':'status changed to ','n':''}
 hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
-bannedVariables = ['token','__file__','qa','userqa','godqa']
+bannedVariables = ['token','__file__','qa','userqa','godqa','hypixelKey']
 powersofTwo = [16,32,64,128,256,512,1024,2048,4096]
 nhentai = NHentai()
 godExempt = True
@@ -89,7 +83,7 @@ def messageCount(ctx):
     messages.update({userID:(messages[userID])+1}) if userID in messages else messages.update({userID:1})
     saveAll()
 def messageBackup():
-    shutil.copytree(f'{os.getcwd()}\\logs', f'{os.getcwd()}\\backups\\logs\\{datetime.fromtimestamp(time()).strftime("%d.%m.%Y %H.%M.%S")}')
+    copytree(f'{os.getcwd()}\\logs', f'{os.getcwd()}\\backups\\logs\\{datetime.fromtimestamp(time()).strftime("%d.%m.%Y %H.%M.%S")}')
 async def autoResponse(ctx):
     global godExempt
     response = ''
@@ -228,12 +222,16 @@ async def execCommand(ctx,*args):
     command = ''
     for i in args: command += f'{i} '
     await ctx.send(eval(command[:-1]))
+# I'll do this later, I'm tired.
+# @client.command(name='hypixel')
+# async def hypixel(ctx):
+#     print(json.loads(requests.get('https://api.hypixel.net/player',params={'key':hypixelKey,'name':'test'}).text))
 # help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
     embed = discord.Embed(title='Help',description='mcfuck!help <command> for more info',color=0x69ff69)
     embed.add_field(name='user commands',value='getAvatar\ngetid\ngetName\nhentai\nleaderboard\nroll')
-    embed.add_field(name='admin commands',value='clearIDcache\nget\ngodExempt\nmessageBackup')
+    embed.add_field(name='admin commands',value='clearIDcache\nexec\nget\ngodExempt\nmessageBackup')
     await ctx.send(embed=embed)
 @help.command(name='getAvatar')
 async def help_getAvatar(ctx): await ctx.send(embed=discord.Embed(title='getAvatar',description='get the avatar of a user. default resolution is 512.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getAvatar <id or @ping> -[res]',inline=False).add_field(name='Example',value='mcfuck!getAvatar 821021462604677140 @the mcfuck. -256',inline=False))
@@ -249,6 +247,8 @@ async def help_leaderboard(ctx): await ctx.send(embed=discord.Embed(title='leade
 async def help_roll(ctx): await ctx.send(embed=discord.Embed(title='roll',description='simple dice roller',color=0x69ff69).add_field(name='Syntax',value='mcfuck!roll <count>d<sides>+[modifiers]',inline=False).add_field(name='Example',value='mcfuck!roll 2d6+3+1',inline=False))
 @help.command(name='clearIDcache')
 async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!clearIDcache'))
+@help.command(name='exec')
+async def help_exec(ctx): await ctx.send(embed= discord.Embed(title='exec',description='lets me execute whatever I want through the bot.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!exec <whatever the fuck>'))
 @help.command(name='get')
 async def help_get(ctx): await ctx.send(embed= discord.Embed(title='get',description='prints out given variable.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!get <variable>'))
 @help.command(name='godExempt')
