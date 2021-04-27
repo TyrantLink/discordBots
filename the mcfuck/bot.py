@@ -1,10 +1,13 @@
 import os
 import re
+import sys
 import json
 import shutil
 import logging
 import discord
-from time import time
+import contextlib
+from time import time,sleep
+from io import StringIO
 from random import randint
 from NHentai import NHentai
 from pickle import load,dump
@@ -97,7 +100,7 @@ async def autoResponse(ctx):
     else:
         if ctx.content in userqa:
             for i in userqa[ctx.content]:
-                if randint(0,1): response += f'​{i}'
+                if randint(0,1): response += f'​{i}​'
                 else: response += i
             await ctx.channel.send(response); logEvent(ctx,response,'r')
             for i in range(len(userqa)):
@@ -117,6 +120,10 @@ async def on_message(message):
     await client.process_commands(message)
 @client.event
 async def on_message_delete(message):
+    if message.author == client.user and re.sub('​','',message.content) in userqa:
+        while True:
+            try: await message.channel.send(message.content); break
+            except: sleep(0.1)
     logMessages(message,'d',' - image or embed') if message.content == "" else logMessages(message,'d')
 @client.event
 async def on_message_edit(message_before,message_after):
@@ -217,6 +224,12 @@ async def getAvatar(ctx,*idsI,res=512):
         except: await ctx.send('id error'); return
         users += f'{user.avatar_url_as(format="png",size=res)}\n'
     await ctx.send(users[:-1])
+@client.command(name='exec')
+async def execCommand(ctx,*args):
+    if ctx.author.id not in admins: await ctx.send('no, fuck you'); return
+    command = ''
+    for i in args: command += f'{i} '
+    await ctx.send(eval(command[:-1]))
 #help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
