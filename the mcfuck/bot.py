@@ -15,7 +15,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
 
-#settings
+# settings
 msgToConsole = True
 
 
@@ -27,7 +27,7 @@ def setupLogger(name,log_file,level=logging.WARNING):
     logger.setLevel(level)
     logger.addHandler(fileHandler)
     return logger
-#startup
+# startup
 os.chdir(r'S:\ProgrammingProjects\&DiscordBots\the mcfuck')
 load_dotenv()
 token=os.getenv('token')
@@ -159,7 +159,7 @@ async def clearIDcache(ctx):
     logEvent(ctx,'cleared user ID cache')
     await ctx.send('done')
 @client.command(name='godExempt')
-async def exemptGod(ctx,arg=not godExempt): 
+async def exemptGod(ctx,arg=True): 
     global godExempt
     if ctx.author.id != 250797109022818305: return
     try: bool(arg)
@@ -189,7 +189,7 @@ async def roll(ctx,roll):
         if 'd' in i: roll = i
         else: modifiers += int(i)
     try: roll = roll.split('d'); roll[0] = int(roll[0]); roll[1] = int(roll[1])
-    except: await ctx.send('argument error.'); raise; return
+    except: await ctx.send('argument error.'); return
     for i in roll:
         if i > maxRoll:
             await ctx.send(f'rolls cannot be above {(format(maxRoll,",d"))}'); return
@@ -212,7 +212,7 @@ async def getAvatar(ctx,*idsI,res=512):
     users = ''
     ids = []
     for i in idsI:
-        if i.startswith('-'): res = int(re.sub('-','',i)); continue
+        if i.startswith('-'):res = ''; res = int(res.join(re.findall(r'\d+',re.sub('-','','-5asd1asd2')))); continue
         i = re.sub('[<@!>]','',i)
         ids.append(re.sub('[<@!>]','',i))
         if len(re.sub('[<@!>]','',i)) != 18: await ctx.send('id or argument error'); return
@@ -228,7 +228,7 @@ async def execCommand(ctx,*args):
     command = ''
     for i in args: command += f'{i} '
     await ctx.send(eval(command[:-1]))
-#help commands
+# help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
     embed = discord.Embed(title='Help',description='mcfuck!help <command> for more info',color=0x69ff69)
