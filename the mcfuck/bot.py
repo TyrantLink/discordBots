@@ -103,9 +103,7 @@ async def autoResponse(ctx):
                 if randint(0,1): response += f'​{i}​'
                 else: response += i
             await ctx.channel.send(response); logEvent(ctx,response,'r')
-            for i in range(len(userqa)):
-                if ctx.content == i:
-                    if foundstuffs[i] == 0: foundstuffs[i] = 1; await ctx.channel.send('NEW AUTO RESPONSE FOUND'); saveAll()
+            if foundstuffs[int(list(userqa.keys()).index(ctx.content))] == 0: foundstuffs[int(list(userqa.keys()).index(ctx.content))] = 1; await ctx.channel.send('NEW AUTO RESPONSE FOUND'); saveAll()
 @client.event
 async def on_ready():
     outputLog.warning(f"{client.user.name} connected to Discord!")
