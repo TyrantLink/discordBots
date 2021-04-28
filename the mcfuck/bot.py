@@ -222,10 +222,12 @@ async def execCommand(ctx,*args):
     command = ''
     for i in args: command += f'{i} '
     await ctx.send(eval(command[:-1]))
+
 # I'll do this later, I'm tired.
 # @client.command(name='hypixel')
 # async def hypixel(ctx):
 #     print(json.loads(requests.get('https://api.hypixel.net/player',params={'key':hypixelKey,'name':'test'}).text))
+
 # help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
