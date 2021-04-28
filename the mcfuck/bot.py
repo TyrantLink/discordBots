@@ -206,7 +206,7 @@ async def getAvatar(ctx,*idsI,res=512):
     users = ''
     ids = []
     for i in idsI:
-        if i.startswith('-'):res = ''; res = int(res.join(re.findall(r'\d+',re.sub('-','','-5asd1asd2')))); continue
+        if i.startswith('-'):res = ''; res = int(res.join(re.findall(r'\d+',re.sub('-','',i)))); continue
         i = re.sub('[<@!>]','',i)
         ids.append(re.sub('[<@!>]','',i))
         if len(re.sub('[<@!>]','',i)) != 18: await ctx.send('id or argument error'); return
