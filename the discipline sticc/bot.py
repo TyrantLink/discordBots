@@ -11,7 +11,6 @@ from time import sleep
 
 client = commands.Bot(command_prefix='sticc!')
 client.remove_command('help')
-serverId = 559830737889787924
 os.chdir(r"S:\ProgrammingProjects\&DiscordBots\the discipline sticc")
 logging.basicConfig(format='[%(asctime)s.%(msecs)03d] %(message)s',filename='output.log',level=logging.WARNING,datefmt='%d/%m/%Y %H:%M:%S')
 load_dotenv()
