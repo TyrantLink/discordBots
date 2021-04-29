@@ -1,7 +1,4 @@
-import os
-import re
-import logging
-import discord
+import os,re,logging,discord,asyncio
 from random import randint
 from pickle import load,dump
 from datetime import datetime
@@ -42,6 +39,8 @@ except:
     tsRole = ''
     tsChannel = ''
     updateDays = ''
+activeMemberIDs = [645069774438531089, 360564186520223754, 434133025450754058, 447929529449709568, 344912616629469184, 250797109022818305, 406238128408494090, 720083946943283241, 505828770112995328, 364237299275399168, 816512113517527121, 798310578606047263]
+sticcs = {}
 def save(type):
     match type:
         case 'v':
@@ -56,43 +55,47 @@ def save(type):
                 dump(tsRole,save)
                 dump(tsChannel,save)
                 dump(updateDays,save)
-def logEvent(ctx,text,custom=False,mode='n'):
+def logEvent(text,ctx=None,custom=False,mode='n'):
     try: m=logModes[mode]
     except: m='unknown log mode'
     log=f"{m}{text} in {ctx.guild} - {ctx.channel}" if custom == False else f'{text}'
     logging.warning(log)
     print(log)
-async def activeMembers(ctx):
-    activeMemberIDs.append(ctx.author.id)
-    save('v')
 async def updateStatus():
     user = await client.fetch_user(currentStik)
-    user = user.name
-    await client.change_presence(activity=discord.Game(f'{user} has the talking stick'))
-async def rollTalkingStick(ctx):
+    await client.change_presence(activity=discord.Game(f'{user.name} has the talking stick'))
+async def rollTalkingStick():
     global activeMemberIDs,activeMemberNames,currentStik,sticcs
     rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
-    while rand == currentStik: rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]; logEvent(ctx,'talking stick rerolled to same user, rerolling')
-    newStik = await ctx.guild.fetch_member(rand)
-    oldStik = await ctx.guild.fetch_member(currentStik)
+    while rand == currentStik: rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
+    newStik = await server.fetch_member(rand)
+    oldStik = await server.fetch_member(currentStik)
     await oldStik.remove_roles(tsRole)
     await newStik.add_roles(tsRole)
     await client.get_channel(742239160399822868).send(f'congrats <@!{rand}>, you have the talking stick.')
     currentStik = rand
-    sticcs.update({ctx.author.id:(sticcs[ctx.author.id])+1}) if ctx.author.id in sticcs else sticcs.update({ctx.author.id:1})
+    sticcs.update({currentStik:(sticcs[currentStik])+1}) if currentStik in sticcs else sticcs.update({currentStik:1})
     activeMemberIDs = []
     save('v')
-    logEvent(ctx,f'rerolled talking stick to {newStik}')
+    logEvent(f'rerolled talking stick to {newStik}',custom=True)
+async def sticcLoop():
+    while datetime.now().strftime("%S") != '01': sleep(0.5); continue
+    while client.is_ready:
+        await asyncio.sleep(60)
+        if datetime.now().strftime("%H:%M") == '09:00':
+            await rollTalkingStick()
+            await updateStatus()
 @client.event
 async def on_ready():
+    global server
     log=f"{client.user.name} connected to Discord!"
     logging.warning(log)
     print(f'{log}\n')
     await updateStatus()
+    server = await client.fetch_guild(559830737889787924)
 @client.event
 async def on_message(message):
-    if message.author.id not in activeMemberIDs and message.author.id not in bannedUsers: logEvent(message,f'adding {message.author.name} to active members',True); await activeMembers(message)
-    if message.author.id == 713586207119900693 and datetime.today().weekday() in updateDays: await rollTalkingStick(message); await updateStatus()
+    if message.author.id not in activeMemberIDs and message.author.id not in bannedUsers: logEvent(f'adding {message.author.name} to active members',ctx=message,custom=True); activeMemberIDs.append(message.author.id); save('v')
     await client.process_commands(message)
 @client.command(name='setup')
 async def setup(ctx):
@@ -145,15 +148,15 @@ async def setupInfo(ctx):
 @client.command(name='reroll')
 async def forceReroll(ctx,arg):
     if arg != '-f': return
-    if ctx.author.id in admins: await rollTalkingStick(ctx); await updateStatus(); logEvent(ctx,'force rerolling talking stick')
-    else: logEvent(ctx,'failed talking stick reroll: user not an admin')
+    if ctx.author.id in admins: await rollTalkingStick(ctx); await updateStatus(); logEvent('force rerolling talking stick',ctx=ctx)
+    else: logEvent('failed talking stick reroll: user not an admin',ctx=ctx)
 @client.command(name='listActive')
 async def listActive(ctx):
     active = ''
     for i in activeMemberIDs:
         if i in idNameCache: username = idNameCache[i]
         else:
-            logEvent(ctx,f'adding {i} to ID cache')
+            logEvent(f'adding {i} to ID cache',ctx=ctx)
             user = await client.fetch_user(i)
             idNameCache.update({i:user.name})
             username = idNameCache[i]
@@ -183,21 +186,21 @@ async def leaderboard(ctx):
     for i in sticcs:
         if i in idNameCache: username = idNameCache[i]
         else:
-            logEvent(ctx,f'adding {i} to ID cache')
+            logEvent(f'adding {i} to ID cache',ctx=ctx)
             user = await client.fetch_user(i)
             idNameCache.update({i:user.name})
             username = idNameCache[i]
         rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
         response += f'{rank} - {username}: {sticcs[i]}\n'
     await ctx.send(embed=discord.Embed(title='sticc Leaderboard:',description=response,color=0x69ff69))
-    logEvent(ctx,'with sticc leaderboard',False,'r')
+    logEvent('with sticc leaderboard',ctx=ctx,mode='r')
     save('v')
 @client.command(name='clearIDcache')
 async def clearIDcache(ctx):
     global idNameCache
     if ctx.author.id not in admins: return
     idNameCache = {}
-    logEvent(ctx,'cleared user ID cache')
+    logEvent('cleared user ID cache',ctx=ctx)
     await ctx.send('done')
 @client.command(name='get')
 async def get(ctx,variable=''):
@@ -244,4 +247,5 @@ async def help_setDays(ctx): await ctx.send(embed=discord.Embed(title='setDays',
 async def help_leaderboard(ctx): await ctx.send(embed=discord.Embed(title='leaderboard',description='lists leaderboard for total number of times a user has recieved the talking sticc.',color=0x69ff69).add_field(name='Syntax',value='sticc!leaderboard'))
 @help.command(name='clearIDcache')
 async def help_clearIDcache(ctx): await ctx.send(embed=discord.Embed(title='clearIDcache',description='clears the cache of ID and username links.',color=0x69ff69).add_field(name='Syntax',value='sticc!clearIDcache'))
+client.loop.create_task(sticcLoop())
 client.run(token)
