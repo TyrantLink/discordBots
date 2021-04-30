@@ -72,7 +72,7 @@ async def rollTalkingStick():
     oldStik = await server.fetch_member(currentStik)
     await oldStik.remove_roles(tsRole)
     await newStik.add_roles(tsRole)
-    await client.get_channel(742239160399822868).send(f'congrats <@!{rand}>, you have the talking stick.')
+    await client.get_channel(tsChannel).send(f'congrats <@!{rand}>, you have the talking stick.')
     currentStik = rand
     sticcs.update({currentStik:(sticcs[currentStik])+1}) if currentStik in sticcs else sticcs.update({currentStik:1})
     activeMemberIDs = []
