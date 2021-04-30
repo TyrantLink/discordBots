@@ -221,13 +221,19 @@ async def execCommand(ctx,*args):
     if ctx.author.id not in admins: await ctx.send('no, fuck you'); return
     command = ''
     for i in args: command += f'{i} '
-    await ctx.send(eval(command[:-1]))
-
+    try: await ctx.send(eval(command[:-1]))
+    except Exception as e: await ctx.send(e)
 # I'll do this later, I'm tired.
 # @client.command(name='hypixel')
-# async def hypixel(ctx):
-#     print(json.loads(requests.get('https://api.hypixel.net/player',params={'key':hypixelKey,'name':'test'}).text))
-
+# async def hypixel(ctx,playerName=None,category=None,mode=None):
+#     player = json.loads(requests.get('https://api.hypixel.net/player',params={'key':hypixelKey,'name':playerName}).text)
+#     if category == None or mode == None: await ctx.send('mode or category error.'); return
+#     try:
+#         if not player[success]: await ctx.send(player['cause']); return
+#     except: pass
+#     # try: gamemode = player['player'][category][mode]
+#     # except Exception as e: await ctx.send(e)
+#     print(player['player'][category][mode])
 # help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
