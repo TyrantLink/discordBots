@@ -36,9 +36,9 @@ try:
         updateDays = load(save)
 except:
     setupComplete = False
-    tsRole = ''
-    tsChannel = ''
-    updateDays = ''
+    tsRole = None
+    tsChannel = None
+    updateDays = None
 
 def save(type):
     match type:
