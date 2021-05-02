@@ -62,7 +62,7 @@ def logEvent(text,ctx=None,custom=False,mode='n'):
     print(log)
 async def updateStatus():
     user = await client.fetch_user(currentStik)
-    await client.change_presence(activity=discord.Game(f'{user.name} has the talking stick'))
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f'{user.name} talk'))
 async def rollTalkingStick():
     global activeMemberIDs,activeMemberNames,currentStik,sticcs
     rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
