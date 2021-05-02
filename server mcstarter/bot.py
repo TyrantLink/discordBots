@@ -228,22 +228,20 @@ async def restart(ctx,server='',mode=''):
     if await permissionChecker(ctx,'banned','serverName',server=server): return
     if await stopServer(ctx,mode): return
     await startServer(ctx,server)
-"""
-I FUCKING GIVE UP.
-@client.command(name='set')
-async def setVariable(ctx,variable,*values):
-    if await permissionChecker(ctx,'admin'): return
-    print(type(variable))
-    try: variable = globals()[variable]
-    except: await ctx.send('unknown variable name.'); return
-    print(type(variable))
-    value = ''
-    for i in values: value += f'{i} '
-    print(value)
-    globals()[variable] = value
-    await ctx.send('done')
-    await get(ctx,variable)
-"""
+# I FUCKING GIVE UP.
+# @client.command(name='set')
+# async def setVariable(ctx,variable,*values):
+#     if await permissionChecker(ctx,'admin'): return
+#     print(type(variable))
+#     try: variable = globals()[variable]
+#     except: await ctx.send('unknown variable name.'); return
+#     print(type(variable))
+#     value = ''
+#     for i in values: value += f'{i} '
+#     print(value)
+#     globals()[variable] = value
+#     await ctx.send('done')
+#     await get(ctx,variable)
 @client.command(name='get')
 async def get(ctx,variable=''):
     if variable=='': await ctx.send('unspecified variable.'); return
