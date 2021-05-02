@@ -1,8 +1,8 @@
-import os,re,json,logging,discord,requests
+import os,re,json,logging,discord,requests,asyncio
 from random import randint
 from shutil import copytree
 from time import time,sleep
-from NHentai import NHentai
+# from NHentai import NHentai
 from pickle import load,dump
 from datetime import datetime
 from dotenv import load_dotenv
@@ -31,13 +31,12 @@ outputLog = setupLogger('output log','logs/output.log')
 sentLog = setupLogger('sent log','logs/messages/sent.log')
 editedLog = setupLogger('edited log','logs/messages/edited.log')
 deletedLog = setupLogger('deleted log','logs/messages/deleted.log')
-client = commands.Bot(command_prefix='mcfuck!')
-client.remove_command('help')
+client = commands.Bot(command_prefix=('mcfuck!','mcf!','f!'),case_insensitive=True,help_command=None)
 logModes = {'r':'responded ','s':'status changed to ','n':''}
-hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
+# hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
 bannedVariables = ['token','__file__','qa','userqa','godqa','hypixelKey']
 powersofTwo = [16,32,64,128,256,512,1024,2048,4096]
-nhentai = NHentai()
+# nhentai = NHentai()
 godExempt = True
 maxRoll = 16384
 
@@ -82,8 +81,7 @@ def messageCount(ctx):
     userID = str(ctx.author.id)
     messages.update({userID:(messages[userID])+1}) if userID in messages else messages.update({userID:1})
     saveAll()
-def messageBackup():
-    copytree(f'{os.getcwd()}\\logs', f'{os.getcwd()}\\backups\\logs\\{datetime.fromtimestamp(time()).strftime("%d.%m.%Y %H.%M.%S")}')
+def messageBackup(): copytree(f'{os.getcwd()}\\logs', f'{os.getcwd()}\\backups\\logs\\{datetime.fromtimestamp(time()).strftime("%d.%m.%Y %H.%M.%S")}')
 async def autoResponse(ctx):
     global godExempt
     response = ''
@@ -102,6 +100,7 @@ async def autoResponse(ctx):
 async def on_ready():
     outputLog.warning(f"{client.user.name} connected to Discord!")
     print(f"{client.user.name} connected to Discord!\n")
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.competing, name='cum'))
 @client.event
 async def on_message(message):
     logMessages(message,'s',' - image or embed') if message.content == "" else logMessages(message,'s')
@@ -120,31 +119,29 @@ async def on_message_delete(message):
 @client.event
 async def on_message_edit(message_before,message_after):
     logMessages(message_before,'e',message_after,' - image or embed') if message_after.content == "" else logMessages(message_before,'e',message_after)
-@client.command(name='leaderboard')
-async def leaderboard(ctx,arg=None):
+@client.group(invoke_without_command=True)
+async def leaderboard(ctx): await ctx.send(embed=discord.Embed(title='Leaderboards:',description='-m, --messages, lists message counts.',color=0x69ff69))
+@leaderboard.command(name='-m',aliases=['--messages'])
+async def messageLeaderboard(ctx):
     global idNameCache,messages
-    match arg:
-        case '-m':
-            messages = {key: value for key, value in sorted(messages.items(), key=lambda item: item[1],reverse=True)}
-            response = ''
-            username = ''
-            index = 1
-            for i in messages:
-                oldResponse = response
-                if i in idNameCache: username = idNameCache[i]
-                else:
-                    logEvent(ctx,f'adding {i} to ID cache')
-                    user = await client.fetch_user(i)
-                    idNameCache.update({i:user.name})
-                    username = idNameCache[i]
-                rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
-                response += f'{rank} - {username}: {messages[i]}\n'
-                if len(response)+20 > 2048: response = oldResponse; break
-            await ctx.send(embed=discord.Embed(title='Message Leaderboard:',description=response,color=0x69ff69))
-            logEvent(ctx,'with message leaderboard','r')
-            saveAll()
-        case _:
-            await ctx.send('unknown leaderboard.')
+    messages = {key: value for key, value in sorted(messages.items(), key=lambda item: item[1],reverse=True)}
+    response = ''
+    username = ''
+    index = 1
+    for i in messages:
+        oldResponse = response
+        if i in idNameCache: username = idNameCache[i]
+        else:
+            logEvent(ctx,f'adding {i} to ID cache')
+            user = await client.fetch_user(i)
+            idNameCache.update({i:user.name})
+            username = idNameCache[i]
+        rank = str(index)+("th" if 4<=index%100<=20 else {1:"st",2:"nd",3:"rd"}.get(index%10, "th")); index += 1
+        response += f'{rank} - {username}: {messages[i]}\n'
+        if len(response)+20 > 2048: response = oldResponse; break
+    await ctx.send(embed=discord.Embed(title='Message Leaderboard:',description=response,color=0x69ff69))
+    logEvent(ctx,'with message leaderboard','r')
+    saveAll()
 @client.command(name='clearIDcache')
 async def clearIDcache(ctx):
     global idNameCache
@@ -163,7 +160,7 @@ async def exemptGod(ctx,arg=True):
 @client.command(name='hentai')
 async def hentai(ctx,id=''):
     if id != '': await ctx.send(f'https://nhentai.net/g/{id}')
-    else: await ctx.send(f'https://nhentai.net/g/{nhentai.get_random().id}')
+    else: rid = randint(1,357195); await ctx.send(embed=discord.Embed(title=rid,url=f'https://nhentai.net/g/{rid}').set_thumbnail(url=f'https://nhentai.net/g/{rid}'))
 @client.command(name='get')
 async def get(ctx,variable=''):
     if variable=='': await ctx.send('unspecified variable.'); return
@@ -223,6 +220,17 @@ async def execCommand(ctx,*args):
     for i in args: command += f'{i} '
     try: await ctx.send(eval(command[:-1]))
     except Exception as e: await ctx.send(e)
+@client.command(name='getGuild')
+async def getGuild(ctx,id):
+    if len(id) != 18: await ctx.send('id error'); return
+    try: guild = await client.fetch_guild(id)
+    except: await ctx.send('id error'); print('fetch'); return
+    await ctx.send(guild.name)
+@client.command(name='reload')
+async def reload(ctx):
+    global qa,userqa,godqa
+    with open('qa.json','r') as qaFile: qa = json.loads(qaFile.read()); userqa = qa['userqa']; godqa = qa['godqa']
+    await ctx.send('done.')
 # I'll do this later, I'm tired.
 # @client.command(name='hypixel')
 # async def hypixel(ctx,playerName=None,category=None,mode=None):
@@ -234,15 +242,19 @@ async def execCommand(ctx,*args):
 #     # try: gamemode = player['player'][category][mode]
 #     # except Exception as e: await ctx.send(e)
 #     print(player['player'][category][mode])
+@client.event
+async def on_command_error(ctx,error): await ctx.send('invalid command')
 # help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
     embed = discord.Embed(title='Help',description='mcfuck!help <command> for more info',color=0x69ff69)
-    embed.add_field(name='user commands',value='getAvatar\ngetid\ngetName\nhentai\nleaderboard\nroll')
+    embed.add_field(name='user commands',value='getAvatar\ngetGuild\ngetid\ngetName\nhentai\nleaderboard\nroll')
     embed.add_field(name='admin commands',value='clearIDcache\nexec\nget\ngodExempt\nmessageBackup')
     await ctx.send(embed=embed)
 @help.command(name='getAvatar')
 async def help_getAvatar(ctx): await ctx.send(embed=discord.Embed(title='getAvatar',description='get the avatar of a user. default resolution is 512.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getAvatar <id or @ping> -[res]',inline=False).add_field(name='Example',value='mcfuck!getAvatar 821021462604677140 @the mcfuck. -256',inline=False))
+@help.command(name='getGuild')
+async def help_getGuild(ctx): await ctx.send(embed=discord.Embed(title='getGuild',description='get name of guild from id.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getGuild <id>',inline=False).add_field(name='Example',value='mcfuck!getGuild 617569794987786270',inline=False))
 @help.command(name='getid')
 async def help_getid(ctx): await ctx.send(embed=discord.Embed(title='getid',description='get userid from @ping.',color=0x69ff69).add_field(name='Syntax',value='mcfuck!getid <@ping>',inline=False).add_field(name='Example',value='mcfuck!getid @the mcfuck.',inline=False))
 @help.command(name='getName')
