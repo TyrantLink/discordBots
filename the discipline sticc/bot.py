@@ -37,7 +37,7 @@ try:
 except:
     setupComplete = False
     tsRole = None
-    tsChannel = None
+    tsChannelid = None
     updateDays = None
 
 def save(type):
