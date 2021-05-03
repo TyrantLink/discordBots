@@ -32,7 +32,7 @@ try:
     with open('staticSave.dat','rb') as save:
         setupComplete = load(save)
         tsRole = load(save)
-        tsChannel = load(save)
+        tsChannelid = load(save)
         updateDays = load(save)
 except:
     setupComplete = False
@@ -52,7 +52,7 @@ def save(type):
             with open('staticSave.dat','wb') as save:
                 dump(setupComplete,save)
                 dump(tsRole,save)
-                dump(tsChannel,save)
+                dump(tsChannelid,save)
                 dump(updateDays,save)
 def logEvent(text,ctx=None,custom=False,mode='n'):
     try: m=logModes[mode]
@@ -69,9 +69,9 @@ async def rollTalkingStick():
     while rand == currentStik: rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
     newStik = await server.fetch_member(rand)
     oldStik = await server.fetch_member(currentStik)
-    await oldStik.remove_roles(tsRole)
+    if rand != 816512113517527121: await oldStik.remove_roles(tsRole)
     await newStik.add_roles(tsRole)
-    await client.get_channel(tsChannel).send(f'congrats <@!{rand}>, you have the talking stick.')
+    await tsChannel.send(f'congrats <@!{rand}>, you have the talking stick.')
     currentStik = rand
     sticcs.update({currentStik:(sticcs[currentStik])+1}) if currentStik in sticcs else sticcs.update({currentStik:1})
     activeMemberIDs = []
@@ -92,13 +92,14 @@ async def on_ready():
     print(f'{log}\n')
     await updateStatus()
     server = await client.fetch_guild(559830737889787924)
+    tsChannel = await client.fetch_channel(tsChannelid)
 @client.event
 async def on_message(message):
     if message.author.id not in activeMemberIDs and message.author.id not in bannedUsers: logEvent(f'adding {message.author.name} to active members',ctx=message,custom=True); activeMemberIDs.append(message.author.id); save('v')
     await client.process_commands(message)
 @client.command(name='setup')
 async def setup(ctx):
-    global tsRole,tsChannel,updateDays
+    global tsRole,tsChannel,updateDays,tsChannelid
     await ctx.send(embed=discord.Embed(title='Talking Stick Role:',description='simply ping the role',color=0x69ff69))
     activeUser = ctx.author.id
     while True:
@@ -111,7 +112,7 @@ async def setup(ctx):
     while True:
         msg = await client.wait_for('message')
         if activeUser != msg.author.id: continue
-        if re.match('<#[0-9]{18}>',msg.content): tsChannel = discord.Object(str(re.sub('[<#>]','',msg.content))); break
+        if re.match('<#[0-9]{18}>',msg.content): tsChannelid = int(re.sub('[<#>]','',msg.content)); break
         elif msg.content == 'break': await ctx.send('okay'); return
         else: await ctx.send('invalid response, just ping the channel.')
     updateDays = []
@@ -139,6 +140,7 @@ async def setup(ctx):
             case "✅": return True
             case _: return False
     await client.wait_for('reaction_add',check=check)
+    tsChannel = await client.fetch_channel(tsChannelid)
     await ctx.send(embed=discord.Embed(title='Setup Complete.',description=f'role: <@&{tsRole.id}>\n\nchannel: <#{tsChannel.id}>\n\nupdateDays: {updateDays}',color=0x69ff69))
     save('s')
 @client.command(name='info')
@@ -147,7 +149,7 @@ async def setupInfo(ctx):
 @client.command(name='reroll')
 async def forceReroll(ctx,arg):
     if arg != '-f': return
-    if ctx.author.id in admins: await rollTalkingStick(ctx); await updateStatus(); logEvent('force rerolling talking stick',ctx=ctx)
+    if ctx.author.id in admins: await rollTalkingStick(); await updateStatus(); logEvent('force rerolling talking stick',ctx=ctx)
     else: logEvent('failed talking stick reroll: user not an admin',ctx=ctx)
 @client.command(name='listActive')
 async def listActive(ctx):
