@@ -72,6 +72,10 @@ def logMessages(ctx,type,ctx2='',ext=''):
             log=f'"{ctx.content}" by {ctx.author} was deleted in {"" if ctx.guild == None else f"{ctx.guild} - "}{ctx.channel}{ext}'
             if msgToConsole and '' not in ctx.content: print(f'"{modColors}{ctx.content}{colorReset}" by {ctx.author} was deleted in {ctx.channel}{colorReset}')
             deletedLog.warning(log)
+        case 'bd':
+            log=f'"{ctx.content}" by {ctx.author} was purged in {"" if ctx.guild == None else f"{ctx.guild} - "}{ctx.channel}{ext}'
+            if msgToConsole and '' not in ctx.content: print(f'"{modColors}{ctx.content}{colorReset}" by {ctx.author} was purge in {ctx.channel}{colorReset}')
+            deletedLog.warning(log)
         case 'e':
             if ctx.content == ctx2.content: return
             log=f'{ctx.author} edited "{ctx.content}" into "{ctx2.content}" in {"" if ctx.guild == None else f"{ctx.guild} - "}{ctx.channel}{ext}'
@@ -116,6 +120,9 @@ async def on_message_delete(message):
             try: await message.channel.send(message.content); break
             except: sleep(0.1)
     logMessages(message,'d',' - image or embed') if message.content == "" else logMessages(message,'d')
+@client.event
+async def on_bulk_message_delete(messages):
+    for message in messages: logMessages(message,'d',' - image or embed') if message.content == "" else logMessages(message,'d')
 @client.event
 async def on_message_edit(message_before,message_after):
     logMessages(message_before,'e',message_after,' - image or embed') if message_after.content == "" else logMessages(message_before,'e',message_after)
