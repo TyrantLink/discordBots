@@ -64,7 +64,7 @@ async def updateStatus():
     user = await client.fetch_user(currentStik)
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f'{user.name} talk'))
 async def rollTalkingStick():
-    global activeMemberIDs,activeMemberNames,currentStik,sticcs
+    global activeMemberIDs,activeMemberNames,currentStik,sticcs,server,tsChannel,tsRole
     rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
     while rand == currentStik: rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
     newStik = await server.fetch_member(rand)
@@ -86,7 +86,7 @@ async def sticcLoop():
             await updateStatus()
 @client.event
 async def on_ready():
-    global server
+    global server,tsChannel
     log=f"{client.user.name} connected to Discord!"
     logging.warning(log)
     print(f'{log}\n')
