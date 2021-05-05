@@ -68,8 +68,7 @@ async def rollTalkingStick():
     rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
     while rand == currentStik: rand = activeMemberIDs[randint(0,len(activeMemberIDs)-1)]
     newStik = await server.fetch_member(rand)
-    oldStik = await server.fetch_member(currentStik)
-    if rand != 816512113517527121: await oldStik.remove_roles(tsRole)
+    await (await server.fetch_member(currentStik)).remove_roles(tsRole)
     await newStik.add_roles(tsRole)
     await tsChannel.send(f'congrats <@!{rand}>, you have the talking stick.')
     currentStik = rand
