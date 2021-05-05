@@ -7,6 +7,7 @@ from pickle import load,dump
 from datetime import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
+from discord_slash import SlashCommand, SlashContext
 
 # settings
 msgToConsole = True
@@ -32,6 +33,7 @@ sentLog = setupLogger('sent log','logs/messages/sent.log')
 editedLog = setupLogger('edited log','logs/messages/edited.log')
 deletedLog = setupLogger('deleted log','logs/messages/deleted.log')
 client = commands.Bot(command_prefix=('mcfuck!','mcf!','f!'),case_insensitive=True,help_command=None)
+slash = SlashCommand(client)
 logModes = {'r':'responded ','s':'status changed to ','n':''}
 # hentaiLanguages = {'e':'english','j':'japanese','c':'chinese'}
 bannedVariables = ['token','__file__','qa','userqa','godqa','hypixelKey']
@@ -122,7 +124,7 @@ async def on_message_delete(message):
     logMessages(message,'d',' - image or embed') if message.content == "" else logMessages(message,'d')
 @client.event
 async def on_bulk_message_delete(messages):
-    for message in messages: logMessages(message,'d',' - image or embed') if message.content == "" else logMessages(message,'d')
+    for message in messages: logMessages(message,'bd',' - image or embed') if message.content == "" else logMessages(message,'bd')
 @client.event
 async def on_message_edit(message_before,message_after):
     logMessages(message_before,'e',message_after,' - image or embed') if message_after.content == "" else logMessages(message_before,'e',message_after)
@@ -167,7 +169,7 @@ async def exemptGod(ctx,arg=True):
 @client.command(name='hentai')
 async def hentai(ctx,id=''):
     if id != '': await ctx.send(f'https://nhentai.net/g/{id}')
-    else: rid = randint(1,357195); await ctx.send(embed=discord.Embed(title=rid,url=f'https://nhentai.net/g/{rid}').set_thumbnail(url=f'https://nhentai.net/g/{rid}'))
+    else: rid = randint(1,357195); await ctx.send(f'https://nhentai.net/g/{rid}')
 @client.command(name='get')
 async def get(ctx,variable=''):
     if variable=='': await ctx.send('unspecified variable.'); return
@@ -249,8 +251,14 @@ async def reload(ctx):
 #     # try: gamemode = player['player'][category][mode]
 #     # except Exception as e: await ctx.send(e)
 #     print(player['player'][category][mode])
+
+@slash.slash(name='testasd')
+async def slashTest(ctx: SlashContext):
+    await ctx.send('IT FUCKIN WORKED BITCHES')
+
+
 @client.event
-async def on_command_error(ctx,error): await ctx.send('invalid command')
+async def on_command_error(ctx,error): await ctx.send(f'command error:\n{error}')
 # help commands
 @client.group(invoke_without_command=True)
 async def help(ctx):
